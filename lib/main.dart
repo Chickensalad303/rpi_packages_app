@@ -42,7 +42,7 @@ class MyApp extends StatelessWidget {
               itemCount: listLength,
               itemBuilder: (BuildContext context, int index) => ListTile(
                 title: const Text("hello"),
-                subtitle: const Text("General Kenobi"),
+                subtitle: const Text("General Kenobi!"),
                 trailing: IconButton(
                   icon: const Icon(Icons.delete),
                   onPressed: () {},
