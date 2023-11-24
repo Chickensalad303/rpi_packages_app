@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 
 const double tableBorderWidth = 1;
 const Color tableBorderColor = Color.fromARGB(150, 182, 182, 182);
+const int listLength = 5;
 
 void main() {
   runApp(const MyApp());
@@ -37,65 +38,83 @@ class MyApp extends StatelessWidget {
               )),
           body: Padding(
             padding: const EdgeInsets.all(10),
-            child: Table(
-              children: const [
-                TableRow(
-                    decoration: BoxDecoration(
-                        border: BorderDirectional(
-                            bottom: BorderSide(
-                                width: tableBorderWidth,
-                                color: tableBorderColor))),
-                    children: [
-                      Center(
-                        child: Padding(
-                          padding: EdgeInsets.symmetric(vertical: 10),
-                          child: Text(
-                            "ID",
-                            style: TextStyle(fontSize: 20),
-                          ),
-                        ),
-                      ),
-                      Center(
-                        child: Padding(
-                          padding: EdgeInsets.symmetric(
-                              vertical: 10, horizontal: 20),
-                          child: Text(
-                            "NAME",
-                            style: TextStyle(fontSize: 20),
-                          ),
-                        ),
-                      )
-                    ]),
-                TableRow(
-                    decoration: BoxDecoration(
-                        border: BorderDirectional(
-                            bottom: BorderSide(
-                                width: tableBorderWidth,
-                                color: tableBorderColor))),
-                    children: [
-                      Center(
-                        child: Padding(
-                          padding: EdgeInsets.symmetric(vertical: 10),
-                          child: Text(
-                            "ID",
-                            style: TextStyle(fontSize: 20),
-                          ),
-                        ),
-                      ),
-                      Center(
-                        child: Padding(
-                          padding: EdgeInsets.symmetric(vertical: 10),
-                          child: Text(
-                            "NAME",
-                            style: TextStyle(fontSize: 20),
-                          ),
-                        ),
-                      ),
-                    ])
-              ],
+            child: ListView.builder(
+              itemCount: listLength,
+              itemBuilder: (BuildContext context, int index) => ListTile(
+                title: const Text("hello"),
+                subtitle: const Text("General Kenobi"),
+                trailing: IconButton(
+                  icon: const Icon(Icons.delete),
+                  onPressed: () {},
+                ),
+              ),
             ),
           ),
         ));
+  }
+}
+
+class T extends StatelessWidget {
+  const T({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      child: Table(
+        children: const [
+          TableRow(
+              decoration: BoxDecoration(
+                  border: BorderDirectional(
+                      bottom: BorderSide(
+                          width: tableBorderWidth, color: tableBorderColor))),
+              children: [
+                Center(
+                  child: Padding(
+                    padding: EdgeInsets.symmetric(vertical: 10),
+                    child: Text(
+                      "ID",
+                      style: TextStyle(fontSize: 20),
+                    ),
+                  ),
+                ),
+                Center(
+                  child: Padding(
+                    padding: EdgeInsets.symmetric(vertical: 10, horizontal: 20),
+                    child: Text(
+                      "NAME",
+                      style: TextStyle(fontSize: 20),
+                    ),
+                  ),
+                )
+              ]),
+          TableRow(
+              decoration: BoxDecoration(
+                  border: BorderDirectional(
+                      bottom: BorderSide(
+                          width: tableBorderWidth, color: tableBorderColor))),
+              children: [
+                Center(
+                  child: Padding(
+                    padding: EdgeInsets.symmetric(vertical: 10),
+                    child: Text(
+                      "ID",
+                      style: TextStyle(fontSize: 20),
+                    ),
+                  ),
+                ),
+                Center(
+                  child: Padding(
+                    padding: EdgeInsets.symmetric(vertical: 10),
+                    child: Text(
+                      "NAME",
+                      style: TextStyle(fontSize: 20),
+                    ),
+                  ),
+                ),
+              ])
+        ],
+      ),
+    );
   }
 }
 
