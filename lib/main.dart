@@ -41,11 +41,14 @@ class MyApp extends StatelessWidget {
             child: ListView.builder(
               itemCount: listLength,
               itemBuilder: (BuildContext context, int index) => ListTile(
+                onTap: () {},
                 title: const Text("hello"),
                 subtitle: const Text("General Kenobi!"),
                 trailing: IconButton(
                   icon: const Icon(Icons.delete),
-                  onPressed: () {},
+                  onPressed: () {
+                    print("test");
+                  },
                 ),
               ),
             ),
