@@ -2,9 +2,15 @@ import 'dart:ui';
 
 import 'package:flutter/material.dart';
 
+import "package:http/http.dart" as http;
+import "dart:convert";
+
 const double tableBorderWidth = 1;
 const Color tableBorderColor = Color.fromARGB(150, 182, 182, 182);
-const int listLength = 5;
+
+const double listPadding = 20;
+int? listLength = 0; // can be int or null
+const String ip = "http://192.168.178.20:3000/api";
 
 void main() {
   runApp(const MyApp());
@@ -28,107 +34,140 @@ class MyApp extends StatelessWidget {
           // or simply save your changes to "hot reload" in a Flutter IDE).
           // Notice that the counter didn't reset back to zero; the application
           // is not restarted.
-          primarySwatch: Colors.red,
+          primarySwatch: Colors.grey,
         ),
         home: Scaffold(
-          appBar: AppBar(
-              backgroundColor: const Color.fromARGB(255, 81, 89, 128),
-              title: const Center(
-                child: Text("Add Names we have Packages for!"),
-              )),
-          body: Padding(
-            padding: const EdgeInsets.all(10),
-            child: ListView.builder(
-              itemCount: listLength,
-              itemBuilder: (BuildContext context, int index) => ListTile(
-                onTap: () {},
-                title: const Text("hello"),
-                subtitle: const Text("General Kenobi!"),
-                trailing: IconButton(
-                  icon: const Icon(Icons.delete),
-                  onPressed: () {
-                    print("test");
-                  },
-                ),
-              ),
-            ),
-          ),
-        ));
+            appBar: AppBar(
+                backgroundColor: const Color.fromARGB(255, 81, 89, 128),
+                title: const Center(
+                  child: Text("Edit Namelist!"),
+                )),
+            body: Container(
+              child: const ListToDisplay(),
+            )));
   }
 }
 
-class T extends StatelessWidget {
-  const T({super.key});
+Future<List> getData() async {
+  var res = await http.get(Uri.parse(ip));
+  if (res.statusCode == 200) {
+    var getData = jsonDecode(res.body);
+    //print(getData);
+
+    return Future.value(getData);
+  } else {
+    throw Future.value(Error());
+  }
+}
+
+class ListToDisplay extends StatefulWidget {
+  const ListToDisplay({super.key});
+
+  @override
+  State<ListToDisplay> createState() => _ListToDisplayState();
+}
+
+class _ListToDisplayState extends State<ListToDisplay> {
+  @override
+  Widget build(BuildContext context) {
+    return FutureBuilder(
+      future: getData(),
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          //print("here");
+          return Container(
+              padding: const EdgeInsets.only(bottom: 100),
+              alignment: Alignment.bottomCenter,
+              child: FittedBox(
+                child: SizedBox(
+                  width: 120,
+                  height: 50,
+                  child: ElevatedButton(
+                    style: const ButtonStyle(
+                        backgroundColor: MaterialStatePropertyAll(
+                            Color.fromARGB(155, 137, 146, 137)),
+                        foregroundColor:
+                            MaterialStatePropertyAll(Colors.black)),
+                    onPressed: () {
+                      setState(() {});
+                    },
+                    child: const Text(
+                      "Retry",
+                      style: TextStyle(fontSize: 24),
+                    ),
+                  ),
+                ),
+              ));
+        } else {
+          if (snapshot.hasError) {
+            return Center(
+              child: Text("error ${snapshot.error}"),
+            );
+          } else {
+            if (snapshot.data == null || snapshot.data?.isEmpty == true) {
+              return const Text("Data recieved is empty");
+            }
+            listLength = snapshot.data?.length;
+
+            return ListView.builder(
+              itemCount: listLength,
+              itemBuilder: (BuildContext context, int index) {
+                //print(snapshot.data?[index]["name"]);
+
+                return Container(
+                  decoration: const BoxDecoration(
+                      border: Border(
+                          bottom:
+                              BorderSide(color: Color.fromARGB(20, 0, 0, 0)))),
+                  child: ListTile(
+                    onTap: () {},
+                    title: Text("${snapshot.data?[index]["name"]}"),
+                    trailing: IconButton(
+                      icon: const Icon(Icons.delete),
+                      onPressed: () {
+                        // var itemToDelete = snapshot.data?[index];
+                        if (snapshot.data?.isNotEmpty == true) {
+                          // send to server, then recieve the new list & display it
+                          setState(() {});
+                        }
+                        print(snapshot.data);
+                      },
+                    ),
+                  ),
+                );
+              },
+            );
+          }
+        }
+      },
+    );
+  }
+}
+
+class EditableList extends StatelessWidget {
+  const EditableList({super.key});
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      child: Table(
-        children: const [
-          TableRow(
-              decoration: BoxDecoration(
-                  border: BorderDirectional(
-                      bottom: BorderSide(
-                          width: tableBorderWidth, color: tableBorderColor))),
-              children: [
-                Center(
-                  child: Padding(
-                    padding: EdgeInsets.symmetric(vertical: 10),
-                    child: Text(
-                      "ID",
-                      style: TextStyle(fontSize: 20),
-                    ),
-                  ),
-                ),
-                Center(
-                  child: Padding(
-                    padding: EdgeInsets.symmetric(vertical: 10, horizontal: 20),
-                    child: Text(
-                      "NAME",
-                      style: TextStyle(fontSize: 20),
-                    ),
-                  ),
-                )
-              ]),
-          TableRow(
-              decoration: BoxDecoration(
-                  border: BorderDirectional(
-                      bottom: BorderSide(
-                          width: tableBorderWidth, color: tableBorderColor))),
-              children: [
-                Center(
-                  child: Padding(
-                    padding: EdgeInsets.symmetric(vertical: 10),
-                    child: Text(
-                      "ID",
-                      style: TextStyle(fontSize: 20),
-                    ),
-                  ),
-                ),
-                Center(
-                  child: Padding(
-                    padding: EdgeInsets.symmetric(vertical: 10),
-                    child: Text(
-                      "NAME",
-                      style: TextStyle(fontSize: 20),
-                    ),
-                  ),
-                ),
-              ])
-        ],
+    return ListView.builder(
+      padding: const EdgeInsets.all(listPadding),
+      itemCount: listLength,
+      itemBuilder: (BuildContext context, int index) => ListTile(
+        onTap: () {},
+        title: const Text("hello"),
+        subtitle: const Text("General Kenobi!"),
+        trailing: IconButton(
+          icon: const Icon(Icons.delete),
+          onPressed: () {},
+        ),
       ),
     );
   }
 }
 
-class HomePage extends StatelessWidget {
-  const HomePage({super.key});
 
-  @override
-  Widget build(BuildContext context) {
-    return Container();
-  }
-}
+
+
 
 
 
