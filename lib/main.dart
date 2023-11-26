@@ -8,9 +8,10 @@ import "dart:convert";
 const double tableBorderWidth = 1;
 const Color tableBorderColor = Color.fromARGB(150, 182, 182, 182);
 
-const double listPadding = 20;
+const double listPadding = 10;
 int? listLength = 0; // can be int or null
 const String ip = "http://192.168.178.20:3000/api";
+const String onlineCheckIp = "http://192.168.178.20:3000";
 
 void main() {
   runApp(const MyApp());
@@ -60,6 +61,32 @@ Future<List> getData() async {
   }
 }
 
+Future removeNames(bodyObject) async {
+  var res = await http.post(Uri.parse(ip),
+      headers: {"Content-Type": "application/json"},
+      body: jsonEncode(bodyObject));
+
+  if (res.statusCode == 200) {
+    var getData = jsonDecode(res.body);
+    return Future.value(getData);
+  } else {
+    throw Future.value(Error());
+  }
+}
+
+Future<bool> isOnline() async {
+  var res = await http.get(Uri.parse(onlineCheckIp));
+  if (res.statusCode == 200) {
+    var getData = jsonDecode(res.body);
+    if (getData?.online == null) {
+      return false;
+    }
+    return true;
+  } else {
+    throw Error();
+  }
+}
+
 class ListToDisplay extends StatefulWidget {
   const ListToDisplay({super.key});
 
@@ -68,36 +95,62 @@ class ListToDisplay extends StatefulWidget {
 }
 
 class _ListToDisplayState extends State<ListToDisplay> {
+  //got it from https://stackoverflow.com/a/70951162
+  Stream<http.Response> isOnlineStream() async* {
+    yield* Stream.periodic(const Duration(seconds: 5), (_) {
+      setState(() {}); // added this ... idk why this works Flutter is stoopid
+      return http.get(Uri.parse(onlineCheckIp));
+    }).asyncMap((event) async => await event);
+  }
+
   @override
   Widget build(BuildContext context) {
+    //no to make this a streamBuilder. Just add a refresh overlay button along with the add name button
     return FutureBuilder(
       future: getData(),
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
-          //print("here");
-          return Container(
-              padding: const EdgeInsets.only(bottom: 100),
-              alignment: Alignment.bottomCenter,
-              child: FittedBox(
-                child: SizedBox(
-                  width: 120,
-                  height: 50,
-                  child: ElevatedButton(
-                    style: const ButtonStyle(
-                        backgroundColor: MaterialStatePropertyAll(
-                            Color.fromARGB(155, 137, 146, 137)),
-                        foregroundColor:
-                            MaterialStatePropertyAll(Colors.black)),
-                    onPressed: () {
-                      setState(() {});
-                    },
-                    child: const Text(
-                      "Retry",
-                      style: TextStyle(fontSize: 24),
-                    ),
+          // this automatically reconnects when when server is turned back on
+          // & also happens when waiting for a response. 2 for 1
+          return StreamBuilder(
+            stream: isOnlineStream(),
+            builder: (BuildContext context, AsyncSnapshot snapshot) {
+              //print(snapshot.data);
+              if (snapshot.hasData) {
+                //this only gets called when we are waiting for response from server, eventhough they are connected
+                // basically this gets shown when response is waiting for database to finish doing database stuff
+                return Align(
+                  alignment: Alignment.center,
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: const [
+                      CircularProgressIndicator.adaptive(),
+                      Text("Server is online - Loading...")
+                    ],
                   ),
-                ),
-              ));
+                );
+              } else {
+                return Align(
+                  alignment: Alignment.center,
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      const CircularProgressIndicator.adaptive(),
+                      Padding(
+                          padding: EdgeInsets.only(top: 40),
+                          child: Column(
+                            children: const [
+                              Text("Loading..."),
+                              Text(
+                                  "If stuck here, check if the server is offline & turn it on")
+                            ],
+                          ))
+                    ],
+                  ),
+                );
+              }
+            },
+          );
         } else {
           if (snapshot.hasError) {
             return Center(
@@ -110,6 +163,7 @@ class _ListToDisplayState extends State<ListToDisplay> {
             listLength = snapshot.data?.length;
 
             return ListView.builder(
+              padding: const EdgeInsets.all(listPadding),
               itemCount: listLength,
               itemBuilder: (BuildContext context, int index) {
                 //print(snapshot.data?[index]["name"]);
@@ -127,10 +181,15 @@ class _ListToDisplayState extends State<ListToDisplay> {
                       onPressed: () {
                         // var itemToDelete = snapshot.data?[index];
                         if (snapshot.data?.isNotEmpty == true) {
-                          // send to server, then recieve the new list & display it
+                          var deleteBodyObj = {
+                            "action": "delete",
+                            "names": [index + 1],
+                          };
+                          removeNames(deleteBodyObj);
                           setState(() {});
+                          // send to server, then recieve the new list & display it
+                          //setState(() {});
                         }
-                        print(snapshot.data);
                       },
                     ),
                   ),
@@ -164,12 +223,6 @@ class EditableList extends StatelessWidget {
     );
   }
 }
-
-
-
-
-
-
 
 // class MyHomePage extends StatefulWidget {
 //   const MyHomePage({super.key, required this.title});

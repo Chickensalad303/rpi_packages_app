@@ -20,11 +20,43 @@ Future<http.Response> getNames() async {
   }
 }
 
-// void main() async {
-//   http.Response getResponse = await getNames();
-//   var getData = jsonDecode(getResponse.body);
+Future addNames() async {
+  final res = await http.post(Uri.parse(ip),
+      headers: {"Content-Type": "application/json"},
+      body: jsonEncode({
+        "action": "add",
+        "names": ["tiM", "tom", "toby"],
+      }));
 
-//   for (var i = 0; i < getData.length; i++) {
-//     print(getData[i]);
-//   }
-// }
+  if (res.statusCode == 200) {
+    var getData = jsonDecode(res.body);
+    return Future.value(getData);
+  } else {
+    throw Future.value(Error());
+  }
+}
+
+Future removeNames(bodyObject) async {
+  final res = await http.post(Uri.parse(ip),
+      headers: {"Content-Type": "application/json"},
+      body: jsonEncode(bodyObject));
+
+  if (res.statusCode == 200) {
+    var getData = jsonDecode(res.body);
+    return Future.value(getData);
+  } else {
+    throw Future.value(Error());
+  }
+}
+
+void main() async {
+  //print(await addNames());
+  //print(await removeNames());
+
+  // http.Response getResponse = await getNames();
+  // var getData = jsonDecode(getResponse.body);
+
+  // for (var i = 0; i < getData.length; i++) {
+  //   print(getData[i]);
+  // }
+}
