@@ -26,23 +26,26 @@ class MyApp extends StatelessWidget {
     return MaterialApp(
         title: 'Flutter Demo',
         theme: ThemeData(
-          // This is the theme of your application.
-          //
-          // Try running your application with "flutter run". You'll see the
-          // application has a blue toolbar. Then, without quitting the app, try
-          // changing the primarySwatch below to Colors.green and then invoke
-          // "hot reload" (press "r" in the console where you ran "flutter run",
-          // or simply save your changes to "hot reload" in a Flutter IDE).
-          // Notice that the counter didn't reset back to zero; the application
-          // is not restarted.
-          primarySwatch: Colors.grey,
-        ),
+            // This is the theme of your application.
+            //
+            // Try running your application with "flutter run". You'll see the
+            // application has a blue toolbar. Then, without quitting the app, try
+            // changing the primarySwatch below to Colors.green and then invoke
+            // "hot reload" (press "r" in the console where you ran "flutter run",
+            // or simply save your changes to "hot reload" in a Flutter IDE).
+            // Notice that the counter didn't reset back to zero; the application
+            // is not restarted.
+            primarySwatch: Colors.grey,
+            useMaterial3: true),
         home: Scaffold(
             appBar: AppBar(
-                backgroundColor: const Color.fromARGB(255, 81, 89, 128),
-                title: const Center(
-                  child: Text("Edit Namelist!"),
-                )),
+              centerTitle: true,
+              backgroundColor: Color.fromARGB(255, 175, 171, 226),
+              title: const Text("Edit Namelist!"),
+              foregroundColor: Colors.black,
+            ),
+            // floatingActionButton: const SendButton(),
+            // floatingActionButtonLocation: FloatingActionButtonLocation.endFloat,
             body: Container(
               child: const ListToDisplay(),
             )));
@@ -74,6 +77,21 @@ Future removeNames(bodyObject) async {
   }
 }
 
+Future addNames(bodyObject) async {
+  var res = await http.post(
+    Uri.parse(ip),
+    headers: {"Content-Type": "application/json"},
+    body: jsonEncode(bodyObject),
+  );
+
+  if (res.statusCode == 200) {
+    var getdata = jsonDecode(res.body);
+    return Future.value(getdata);
+  } else {
+    throw Future.value(Error());
+  }
+}
+
 Future<bool> isOnline() async {
   var res = await http.get(Uri.parse(onlineCheckIp));
   if (res.statusCode == 200) {
@@ -87,6 +105,31 @@ Future<bool> isOnline() async {
   }
 }
 
+// class SendButton extends StatefulWidget {
+//   const SendButton({super.key});
+
+//   @override
+//   State<SendButton> createState() => SendButtonState();
+// }
+
+// class SendButtonState extends State<SendButton> {
+//   @override
+//   Widget build(BuildContext context) {
+//     return Column(mainAxisAlignment: MainAxisAlignment.end, children: [
+//       FloatingActionButton(
+//           child: const Icon(Icons.refresh_rounded),
+//           onPressed: () {
+//             return setState(() {});
+//           }),
+//       Padding(
+//         padding: const EdgeInsets.only(top: 10),
+//         child: FloatingActionButton(
+//             onPressed: () {}, child: const Icon(Icons.add)),
+//       ),
+//     ]);
+//   }
+// }
+
 class ListToDisplay extends StatefulWidget {
   const ListToDisplay({super.key});
 
@@ -98,10 +141,25 @@ class _ListToDisplayState extends State<ListToDisplay> {
   //got it from https://stackoverflow.com/a/70951162
   Stream<http.Response> isOnlineStream() async* {
     yield* Stream.periodic(const Duration(seconds: 5), (_) {
-      setState(() {}); // added this ... idk why this works Flutter is stoopid
-      return http.get(Uri.parse(onlineCheckIp));
+      var i;
+      setState(() {
+        i = http.get(Uri.parse(onlineCheckIp));
+      }); // added this ... idk why this works Flutter is stoopid
+      return i;
     }).asyncMap((event) async => await event);
   }
+
+//use this to retrieve text from text field
+  var textController = TextEditingController();
+
+  String? _errorText = null;
+
+  // @override
+  // void dispose() {
+  //   //clean up the controller when widget is disposed
+  //   textController.dispose();
+  //   super.dispose();
+  // }
 
   @override
   Widget build(BuildContext context) {
@@ -115,7 +173,6 @@ class _ListToDisplayState extends State<ListToDisplay> {
           return StreamBuilder(
             stream: isOnlineStream(),
             builder: (BuildContext context, AsyncSnapshot snapshot) {
-              //print(snapshot.data);
               if (snapshot.hasData) {
                 //this only gets called when we are waiting for response from server, eventhough they are connected
                 // basically this gets shown when response is waiting for database to finish doing database stuff
@@ -135,9 +192,14 @@ class _ListToDisplayState extends State<ListToDisplay> {
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      const CircularProgressIndicator.adaptive(),
+                      const SizedBox(
+                          height: 70,
+                          width: 70,
+                          child: CircularProgressIndicator.adaptive(
+                            strokeWidth: 5,
+                          )),
                       Padding(
-                          padding: EdgeInsets.only(top: 40),
+                          padding: const EdgeInsets.only(top: 40),
                           child: Column(
                             children: const [
                               Text("Loading..."),
@@ -162,39 +224,115 @@ class _ListToDisplayState extends State<ListToDisplay> {
             }
             listLength = snapshot.data?.length;
 
-            return ListView.builder(
-              padding: const EdgeInsets.all(listPadding),
-              itemCount: listLength,
-              itemBuilder: (BuildContext context, int index) {
-                //print(snapshot.data?[index]["name"]);
-
-                return Container(
-                  decoration: const BoxDecoration(
-                      border: Border(
-                          bottom:
-                              BorderSide(color: Color.fromARGB(20, 0, 0, 0)))),
-                  child: ListTile(
-                    onTap: () {},
-                    title: Text("${snapshot.data?[index]["name"]}"),
-                    trailing: IconButton(
-                      icon: const Icon(Icons.delete),
+            return Scaffold(
+              //this shit stupid af i cant put this inside a seperate widget for some reason
+              floatingActionButton:
+                  Column(mainAxisAlignment: MainAxisAlignment.end, children: [
+                FloatingActionButton(
+                    // refresh list
+                    child: const Icon(Icons.refresh_rounded),
+                    onPressed: () {
+                      setState(() {});
+                    }),
+                Padding(
+                  padding: const EdgeInsets.only(top: 10),
+                  child: FloatingActionButton(
+                      //add to list
                       onPressed: () {
-                        // var itemToDelete = snapshot.data?[index];
-                        if (snapshot.data?.isNotEmpty == true) {
-                          var deleteBodyObj = {
-                            "action": "delete",
-                            "names": [index + 1],
-                          };
-                          removeNames(deleteBodyObj);
-                          setState(() {});
-                          // send to server, then recieve the new list & display it
-                          //setState(() {});
-                        }
+                        showDialog(
+                          context: context,
+                          builder: (context) {
+                            return AlertDialog(
+                              scrollable: true,
+                              title: const Center(child: Text("Add name")),
+                              //form inside the alert dialog
+                              content: Form(
+                                  child: TextFormField(
+                                enableInteractiveSelection: true,
+                                enableSuggestions: true,
+                                autofocus: true,
+                                controller: textController,
+                                decoration: InputDecoration(
+                                    errorText: _errorText,
+                                    labelText: "Name",
+                                    // errorText: "Can't be empty",
+                                    icon: const Icon(Icons.account_circle)),
+                              )),
+                              // buttons inside the alertdialog
+                              actions: [
+                                SizedBox(
+                                  width: 80,
+                                  child: FloatingActionButton(
+                                      //here send names to add to the server
+                                      onPressed: () {
+                                        //print(textController.text);
+                                        if (textController.text.isEmpty) {
+                                          print("Can't be empty");
+                                          _errorText = "Can't be empty";
+                                          setState(() {});
+                                          return;
+                                        }
+
+                                        var nameToAdd = textController.text;
+                                        var addNamesObj = {
+                                          "action": "add",
+                                          "names": [nameToAdd]
+                                        };
+                                        setState(() {
+                                          addNames(addNamesObj);
+                                        });
+                                        Navigator.pop(context);
+                                        textController.clear();
+                                      },
+                                      child: const Text("Submit")),
+                                )
+                              ],
+                            );
+                          },
+                        );
                       },
+                      child: const Icon(Icons.add)),
+                ),
+              ]),
+              floatingActionButtonLocation:
+                  FloatingActionButtonLocation.endFloat,
+
+              //this is the list
+              body: ListView.builder(
+                padding: const EdgeInsets.all(listPadding),
+                itemCount: listLength,
+                itemBuilder: (BuildContext context, int index) {
+                  //print(snapshot.data?[index]["name"]);
+
+                  return Container(
+                    decoration: const BoxDecoration(
+                        border: Border(
+                            bottom: BorderSide(
+                                color: Color.fromARGB(20, 0, 0, 0)))),
+                    child: ListTile(
+                      onTap: () {},
+                      title: Text("${snapshot.data?[index]["name"]}"),
+                      trailing: IconButton(
+                        icon: const Icon(Icons.delete),
+                        onPressed: () {
+                          // var itemToDelete = snapshot.data?[index];
+                          if (snapshot.data?.isNotEmpty == true) {
+                            var deleteBodyObj = {
+                              "action": "delete",
+                              "names": [index + 1],
+                            };
+                            // removeNames(deleteBodyObj);
+                            setState(() {
+                              removeNames(deleteBodyObj);
+                            });
+                            // send to server, then recieve the new list & display it
+                          }
+                        },
+                      ),
                     ),
-                  ),
-                );
-              },
+                  );
+                },
+              ),
             );
           }
         }
