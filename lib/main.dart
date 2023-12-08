@@ -152,7 +152,7 @@ class _ListToDisplayState extends State<ListToDisplay> {
 //use this to retrieve text from text field
   var textController = TextEditingController();
 
-  String? _errorText = null;
+  String? _errorText;
 
   // @override
   // void dispose() {
@@ -176,32 +176,32 @@ class _ListToDisplayState extends State<ListToDisplay> {
               if (snapshot.hasData) {
                 //this only gets called when we are waiting for response from server, eventhough they are connected
                 // basically this gets shown when response is waiting for database to finish doing database stuff
-                return Align(
+                return const Align(
                   alignment: Alignment.center,
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
-                    children: const [
+                    children: [
                       CircularProgressIndicator.adaptive(),
                       Text("Server is online - Loading...")
                     ],
                   ),
                 );
               } else {
-                return Align(
+                return const Align(
                   alignment: Alignment.center,
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      const SizedBox(
+                      SizedBox(
                           height: 70,
                           width: 70,
                           child: CircularProgressIndicator.adaptive(
                             strokeWidth: 5,
                           )),
                       Padding(
-                          padding: const EdgeInsets.only(top: 40),
+                          padding: EdgeInsets.only(top: 40),
                           child: Column(
-                            children: const [
+                            children: [
                               Text("Loading..."),
                               Text(
                                   "If stuck here, check if the server is offline & turn it on")
