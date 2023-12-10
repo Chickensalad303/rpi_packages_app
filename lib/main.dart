@@ -10,6 +10,8 @@ const Color tableBorderColor = Color.fromARGB(150, 182, 182, 182);
 
 const double listPadding = 10;
 int? listLength = 0; // can be int or null
+// http://192.168.178.20:3000/api
+// http://192.168.178.20:3000
 const String ip = "http://192.168.178.20:3000/api";
 const String onlineCheckIp = "http://192.168.178.20:3000";
 
@@ -40,15 +42,82 @@ class MyApp extends StatelessWidget {
         home: Scaffold(
             appBar: AppBar(
               centerTitle: true,
-              backgroundColor: Color.fromARGB(255, 175, 171, 226),
+              backgroundColor: const Color.fromARGB(255, 175, 171, 226),
               title: const Text("Edit Namelist!"),
               foregroundColor: Colors.black,
+              actions: [SettingsWidget()],
             ),
             // floatingActionButton: const SendButton(),
             // floatingActionButtonLocation: FloatingActionButtonLocation.endFloat,
             body: Container(
               child: const ListToDisplay(),
             )));
+  }
+}
+
+class SettingsWidget extends StatefulWidget {
+  const SettingsWidget({super.key});
+
+  @override
+  State<SettingsWidget> createState() => _SettingsWidgetState();
+}
+
+class _SettingsWidgetState extends State<SettingsWidget> {
+  var settingsController = TextEditingController();
+  String? _errorText;
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+        child: IconButton(
+      icon: const Icon(Icons.settings),
+      onPressed: () {
+        showDialog(
+            context: context,
+            builder: (context) {
+              return StatefulBuilder(
+                builder: ((stfcontext, stfState) {
+                  return AlertDialog(
+                    scrollable: true,
+                    title: const Center(child: Text("Settings")),
+                    content: Form(
+                        child: TextFormField(
+                      enableInteractiveSelection: true,
+                      enableSuggestions: false,
+                      autofocus: true,
+                      controller: settingsController,
+                      decoration: InputDecoration(
+                          errorText: _errorText, labelText: "IP of server"),
+                    )),
+                    actions: [
+                      FloatingActionButton(
+                          onPressed: () {
+                            //here just save input to ip & close settings
+                            if (settingsController.text.isEmpty) {
+                              print("ip input can't be empty");
+                              _errorText = "Can't be empty";
+                              stfState(() {});
+                              return;
+                            } else {
+                              _errorText = null;
+                            }
+
+                            // need to impliment this to reconnect with new ip
+                            // i think ill just save it in the vars being used and
+                            // somehow make everything setstate
+
+                            // idk know anymorhe this is too confusion whyyyyyyyyy
+                            var newIP = settingsController.text;
+                            print(newIP);
+                            Navigator.pop(context);
+                          },
+                          child: const Text("Save"))
+                    ],
+                  );
+                }),
+              );
+            });
+      },
+    ));
   }
 }
 
@@ -92,18 +161,18 @@ Future addNames(bodyObject) async {
   }
 }
 
-Future<bool> isOnline() async {
-  var res = await http.get(Uri.parse(onlineCheckIp));
-  if (res.statusCode == 200) {
-    var getData = jsonDecode(res.body);
-    if (getData?.online == null) {
-      return false;
-    }
-    return true;
-  } else {
-    throw Error();
-  }
-}
+// Future<bool> isOnline() async {
+//   var res = await http.get(Uri.parse(onlineCheckIp));
+//   if (res.statusCode == 200) {
+//     var getData = jsonDecode(res.body);
+//     if (getData?.online == null) {
+//       return false;
+//     }
+//     return true;
+//   } else {
+//     throw Error();
+//   }
+// }
 
 // class SendButton extends StatefulWidget {
 //   const SendButton({super.key});
@@ -149,7 +218,7 @@ class _ListToDisplayState extends State<ListToDisplay> {
     }).asyncMap((event) async => await event);
   }
 
-//use this to retrieve text from text field
+  //use this to retrieve text from text field
   var textController = TextEditingController();
 
   String? _errorText;
@@ -242,51 +311,61 @@ class _ListToDisplayState extends State<ListToDisplay> {
                         showDialog(
                           context: context,
                           builder: (context) {
-                            return AlertDialog(
-                              scrollable: true,
-                              title: const Center(child: Text("Add name")),
-                              //form inside the alert dialog
-                              content: Form(
-                                  child: TextFormField(
-                                enableInteractiveSelection: true,
-                                enableSuggestions: true,
-                                autofocus: true,
-                                controller: textController,
-                                decoration: InputDecoration(
-                                    errorText: _errorText,
-                                    labelText: "Name",
-                                    // errorText: "Can't be empty",
-                                    icon: const Icon(Icons.account_circle)),
-                              )),
-                              // buttons inside the alertdialog
-                              actions: [
-                                SizedBox(
-                                  width: 80,
-                                  child: FloatingActionButton(
-                                      //here send names to add to the server
-                                      onPressed: () {
-                                        //print(textController.text);
-                                        if (textController.text.isEmpty) {
-                                          print("Can't be empty");
-                                          _errorText = "Can't be empty";
-                                          setState(() {});
-                                          return;
-                                        }
+                            return StatefulBuilder(
+                              builder: (stfcontext, stfState) {
+                                return AlertDialog(
+                                  scrollable: true,
+                                  title: const Center(child: Text("Add name")),
+                                  //form inside the alert dialog
+                                  content: Form(
+                                      child: TextFormField(
+                                    enableInteractiveSelection: true,
+                                    enableSuggestions: true,
+                                    autofocus: true,
+                                    controller: textController,
+                                    decoration: InputDecoration(
+                                        errorText: _errorText,
+                                        labelText: "Name",
+                                        // errorText: "Can't be empty",
+                                        icon: const Icon(Icons.account_circle)),
+                                  )),
+                                  // buttons inside the alertdialog
+                                  actions: [
+                                    SizedBox(
+                                      width: 80,
+                                      child: FloatingActionButton(
+                                          //here send names to add to the server
+                                          onPressed: () {
+                                            //print(textController.text);
+                                            if (textController.text.isEmpty) {
+                                              print("Can't be empty");
+                                              _errorText = "Can't be empty";
+                                              stfState(() {});
+                                              return;
+                                            } else {
+                                              _errorText = null;
+                                            }
 
-                                        var nameToAdd = textController.text;
-                                        var addNamesObj = {
-                                          "action": "add",
-                                          "names": [nameToAdd]
-                                        };
-                                        setState(() {
-                                          addNames(addNamesObj);
-                                        });
-                                        Navigator.pop(context);
-                                        textController.clear();
-                                      },
-                                      child: const Text("Submit")),
-                                )
-                              ],
+                                            //sftState sets the state for StatefulBuilder
+                                            //whilst setState sets state for entire widget
+                                            //(aka. the FutureBuilder)
+                                            var nameToAdd = textController.text;
+                                            var addNamesObj = {
+                                              "action": "add",
+                                              "names": [nameToAdd]
+                                            };
+                                            setState(() {
+                                              addNames(addNamesObj);
+                                            });
+
+                                            Navigator.pop(context);
+                                            textController.clear();
+                                          },
+                                          child: const Text("Submit")),
+                                    )
+                                  ],
+                                );
+                              },
                             );
                           },
                         );
