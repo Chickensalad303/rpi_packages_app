@@ -5,6 +5,10 @@ import 'package:flutter/material.dart';
 import "package:http/http.dart" as http;
 import "dart:convert";
 
+// this link explains how to make child setState of parent widget... its amazing
+// remember this, btw solution also in archive.org
+// https://www.appsloveworld.com/flutter/100/26/how-to-update-the-state-of-parent-widget-from-its-child-widget-while-also-updatin
+
 const double tableBorderWidth = 1;
 const Color tableBorderColor = Color.fromARGB(150, 182, 182, 182);
 
@@ -12,17 +16,26 @@ const double listPadding = 10;
 int? listLength = 0; // can be int or null
 // http://192.168.178.20:3000/api
 // http://192.168.178.20:3000
-const String ip = "http://192.168.178.20:3000/api";
-const String onlineCheckIp = "http://192.168.178.20:3000";
+String ip = "";
+String onlineCheckIp = "";
 
 void main() {
   runApp(const MyApp());
 }
 
-class MyApp extends StatelessWidget {
+class MyApp extends StatefulWidget {
   const MyApp({super.key});
 
+  @override
+  State<MyApp> createState() => _MyAppState();
+}
+
+class _MyAppState extends State<MyApp> {
   // This widget is the root of your application.
+  callbackSetState() {
+    setState(() {});
+  }
+
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
@@ -45,18 +58,25 @@ class MyApp extends StatelessWidget {
               backgroundColor: const Color.fromARGB(255, 175, 171, 226),
               title: const Text("Edit Namelist!"),
               foregroundColor: Colors.black,
-              actions: [SettingsWidget()],
+              actions: [
+                SettingsWidget(
+                  callbackSetState: callbackSetState,
+                )
+              ],
             ),
             // floatingActionButton: const SendButton(),
             // floatingActionButtonLocation: FloatingActionButtonLocation.endFloat,
             body: Container(
-              child: const ListToDisplay(),
+              //dont do const because then settingswidget callbackSetState() wont affect this
+              // ignore: prefer_const_constructors
+              child: ListToDisplay(),
             )));
   }
 }
 
 class SettingsWidget extends StatefulWidget {
-  const SettingsWidget({super.key});
+  Function callbackSetState;
+  SettingsWidget({super.key, required this.callbackSetState});
 
   @override
   State<SettingsWidget> createState() => _SettingsWidgetState();
@@ -65,13 +85,16 @@ class SettingsWidget extends StatefulWidget {
 class _SettingsWidgetState extends State<SettingsWidget> {
   var settingsController = TextEditingController();
   String? _errorText;
+
   @override
   Widget build(BuildContext context) {
     return Container(
         child: IconButton(
       icon: const Icon(Icons.settings),
       onPressed: () {
-        showDialog(
+        _errorText = null;
+        settingsController.text = onlineCheckIp.replaceAll("http://", "");
+        showAdaptiveDialog(
             context: context,
             builder: (context) {
               return StatefulBuilder(
@@ -86,7 +109,10 @@ class _SettingsWidgetState extends State<SettingsWidget> {
                       autofocus: true,
                       controller: settingsController,
                       decoration: InputDecoration(
-                          errorText: _errorText, labelText: "IP of server"),
+                        errorText: _errorText,
+                        labelText: "IP of server",
+                        hintText: "e.g. 192.168.178.20:3000",
+                      ),
                     )),
                     actions: [
                       FloatingActionButton(
@@ -106,8 +132,13 @@ class _SettingsWidgetState extends State<SettingsWidget> {
                             // somehow make everything setstate
 
                             // idk know anymorhe this is too confusion whyyyyyyyyy
-                            var newIP = settingsController.text;
-                            print(newIP);
+                            var newIP = settingsController.text.trim();
+                            onlineCheckIp = "http://$newIP";
+                            ip = "$onlineCheckIp/api";
+                            print(ip);
+
+                            print(onlineCheckIp);
+                            widget.callbackSetState();
                             Navigator.pop(context);
                           },
                           child: const Text("Save"))
@@ -121,11 +152,88 @@ class _SettingsWidgetState extends State<SettingsWidget> {
   }
 }
 
+class FirstTimeSettings extends StatefulWidget {
+  Function firstTimeSetState;
+  FirstTimeSettings({super.key, required this.firstTimeSetState});
+
+  @override
+  State<FirstTimeSettings> createState() => _FirstTimeSettingsState();
+}
+
+class _FirstTimeSettingsState extends State<FirstTimeSettings> {
+  var textController = TextEditingController();
+  String? _errorText;
+  @override
+  Widget build(BuildContext context) {
+    return StatefulBuilder(
+      builder: (stfcontext, stfState) {
+        return Padding(
+          padding: const EdgeInsets.only(bottom: 100),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              const Padding(
+                padding: EdgeInsets.only(bottom: 50),
+                child: Text(
+                  "Insert IP adress of the server",
+                  style: TextStyle(fontSize: 22),
+                ),
+              ),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 50),
+                child: Center(
+                  child: Form(
+                    canPop: true,
+                    child: TextFormField(
+                      autocorrect: false,
+                      controller: textController,
+                      decoration: InputDecoration(
+                          errorText: _errorText,
+                          border: const OutlineInputBorder(),
+                          labelText: "IP of server",
+                          hintText: "e.g. 192.168.178.20:3000"),
+                    ),
+                  ),
+                ),
+              ),
+              Padding(
+                padding: const EdgeInsets.only(top: 50),
+                child: FloatingActionButton.extended(
+                    icon: const Icon(Icons.save),
+                    label: const Text("Save"),
+                    onPressed: () {
+                      if (textController.text.isEmpty) {
+                        _errorText = "Can't be empty";
+                        stfState((() {}));
+                        return;
+                      } else {
+                        _errorText = null;
+                      }
+                      var newIP = textController.text.trim();
+                      onlineCheckIp = "http://$newIP";
+                      ip = "$onlineCheckIp/api";
+
+                      widget.firstTimeSetState();
+                    }),
+              )
+            ],
+          ),
+        );
+      },
+    );
+  }
+}
+
 Future<List> getData() async {
+  if (ip == "") {
+    return [
+      {"error": "Invalid argument(s): No host specified in URI", "code": 1}
+    ];
+  }
   var res = await http.get(Uri.parse(ip));
   if (res.statusCode == 200) {
     var getData = jsonDecode(res.body);
-    //print(getData);
+    print(getData);
 
     return Future.value(getData);
   } else {
@@ -207,6 +315,10 @@ class ListToDisplay extends StatefulWidget {
 }
 
 class _ListToDisplayState extends State<ListToDisplay> {
+  firstTimeSetState() {
+    setState(() {});
+  }
+
   //got it from https://stackoverflow.com/a/70951162
   Stream<http.Response> isOnlineStream() async* {
     yield* Stream.periodic(const Duration(seconds: 5), (_) {
@@ -214,6 +326,7 @@ class _ListToDisplayState extends State<ListToDisplay> {
       setState(() {
         i = http.get(Uri.parse(onlineCheckIp));
       }); // added this ... idk why this works Flutter is stoopid
+
       return i;
     }).asyncMap((event) async => await event);
   }
@@ -236,6 +349,7 @@ class _ListToDisplayState extends State<ListToDisplay> {
     return FutureBuilder(
       future: getData(),
       builder: (context, snapshot) {
+        print(onlineCheckIp);
         if (snapshot.connectionState == ConnectionState.waiting) {
           // this automatically reconnects when when server is turned back on
           // & also happens when waiting for a response. 2 for 1
@@ -284,10 +398,37 @@ class _ListToDisplayState extends State<ListToDisplay> {
           );
         } else {
           if (snapshot.hasError) {
+            print(snapshot.error);
             return Center(
-              child: Text("error ${snapshot.error}"),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Text(
+                    "Error ${snapshot.error}",
+                    style: const TextStyle(color: Colors.red),
+                  ),
+                  const Padding(
+                    padding: EdgeInsets.only(top: 20),
+                    child: Text(
+                        textAlign: TextAlign.center,
+                        "check the settings & make sure the ip of the server is correct!"),
+                  ),
+                  const Padding(
+                    padding: EdgeInsets.only(top: 50),
+                    child: Text(
+                        style: TextStyle(color: Color.fromARGB(150, 0, 0, 0)),
+                        textAlign: TextAlign.center,
+                        "Note:\n Currently this only works on a local network, meaning that this device and the Raspberry Pi/screen have to be connected to the same network!"),
+                  ),
+                ],
+              ),
             );
           } else {
+            //handle if function returns custom error
+            //print(snapshot.data?[0]["code"]);
+            if (snapshot.data?[0]["code"] == 1) {
+              return FirstTimeSettings(firstTimeSetState: firstTimeSetState);
+            }
             if (snapshot.data == null || snapshot.data?.isEmpty == true) {
               return const Text("Data recieved is empty");
             }
@@ -295,122 +436,142 @@ class _ListToDisplayState extends State<ListToDisplay> {
 
             return Scaffold(
               //this shit stupid af i cant put this inside a seperate widget for some reason
-              floatingActionButton:
-                  Column(mainAxisAlignment: MainAxisAlignment.end, children: [
-                FloatingActionButton(
-                    // refresh list
-                    child: const Icon(Icons.refresh_rounded),
-                    onPressed: () {
-                      setState(() {});
-                    }),
-                Padding(
-                  padding: const EdgeInsets.only(top: 10),
-                  child: FloatingActionButton(
-                      //add to list
+              floatingActionButton: Padding(
+                padding: const EdgeInsets.only(right: listPadding),
+                child:
+                    Column(mainAxisAlignment: MainAxisAlignment.end, children: [
+                  FloatingActionButton(
+                      // refresh list
+                      child: const Icon(Icons.refresh_rounded),
                       onPressed: () {
-                        showDialog(
-                          context: context,
-                          builder: (context) {
-                            return StatefulBuilder(
-                              builder: (stfcontext, stfState) {
-                                return AlertDialog(
-                                  scrollable: true,
-                                  title: const Center(child: Text("Add name")),
-                                  //form inside the alert dialog
-                                  content: Form(
-                                      child: TextFormField(
-                                    enableInteractiveSelection: true,
-                                    enableSuggestions: true,
-                                    autofocus: true,
-                                    controller: textController,
-                                    decoration: InputDecoration(
-                                        errorText: _errorText,
-                                        labelText: "Name",
-                                        // errorText: "Can't be empty",
-                                        icon: const Icon(Icons.account_circle)),
-                                  )),
-                                  // buttons inside the alertdialog
-                                  actions: [
-                                    SizedBox(
-                                      width: 80,
-                                      child: FloatingActionButton(
-                                          //here send names to add to the server
-                                          onPressed: () {
-                                            //print(textController.text);
-                                            if (textController.text.isEmpty) {
-                                              print("Can't be empty");
-                                              _errorText = "Can't be empty";
-                                              stfState(() {});
-                                              return;
-                                            } else {
-                                              _errorText = null;
-                                            }
+                        setState(() {});
+                      }),
+                  Padding(
+                    padding: const EdgeInsets.only(top: 10),
+                    child: FloatingActionButton(
+                        //add to list
+                        onPressed: () {
+                          //removes error text for next time dialog is opened
+                          _errorText = null;
 
-                                            //sftState sets the state for StatefulBuilder
-                                            //whilst setState sets state for entire widget
-                                            //(aka. the FutureBuilder)
-                                            var nameToAdd = textController.text;
-                                            var addNamesObj = {
-                                              "action": "add",
-                                              "names": [nameToAdd]
-                                            };
-                                            setState(() {
-                                              addNames(addNamesObj);
-                                            });
+                          showAdaptiveDialog(
+                            context: context,
+                            builder: (context) {
+                              return StatefulBuilder(
+                                builder: (stfcontext, stfState) {
+                                  return AlertDialog(
+                                    scrollable: true,
+                                    title:
+                                        const Center(child: Text("Add name")),
+                                    //form inside the alert dialog
+                                    content: Form(
+                                        child: TextFormField(
+                                      enableInteractiveSelection: true,
+                                      enableSuggestions: true,
+                                      autofocus: true,
+                                      controller: textController,
+                                      decoration: InputDecoration(
+                                          errorText: _errorText,
+                                          labelText: "Name",
+                                          // errorText: "Can't be empty",
+                                          icon:
+                                              const Icon(Icons.account_circle)),
+                                    )),
+                                    // buttons inside the alertdialog
+                                    actions: [
+                                      SizedBox(
+                                        width: 80,
+                                        child: FloatingActionButton(
+                                            //here send names to add to the server
+                                            onPressed: () {
+                                              //print(textController.text);
+                                              if (textController.text.isEmpty) {
+                                                print("Can't be empty");
+                                                stfState(() {
+                                                  _errorText = "Can't be empty";
+                                                });
 
-                                            Navigator.pop(context);
-                                            textController.clear();
-                                          },
-                                          child: const Text("Submit")),
-                                    )
-                                  ],
-                                );
-                              },
-                            );
-                          },
-                        );
-                      },
-                      child: const Icon(Icons.add)),
-                ),
-              ]),
+                                                return;
+                                              } else {
+                                                _errorText = null;
+                                              }
+
+                                              //sftState sets the state for StatefulBuilder
+                                              //whilst setState sets state for entire widget
+                                              //(aka. the FutureBuilder)
+                                              var nameToAdd =
+                                                  textController.text;
+                                              var addNamesObj = {
+                                                "action": "add",
+                                                "names": [nameToAdd]
+                                              };
+                                              setState(() {
+                                                addNames(addNamesObj);
+                                              });
+                                              Navigator.pop(context);
+                                              textController.clear();
+                                            },
+                                            child: const Text("Submit")),
+                                      )
+                                    ],
+                                  );
+                                },
+                              );
+                            },
+                          );
+                        },
+                        child: const Icon(Icons.add)),
+                  ),
+                ]),
+              ),
               floatingActionButtonLocation:
                   FloatingActionButtonLocation.endFloat,
 
               //this is the list
-              body: ListView.builder(
-                padding: const EdgeInsets.all(listPadding),
-                itemCount: listLength,
-                itemBuilder: (BuildContext context, int index) {
-                  //print(snapshot.data?[index]["name"]);
+              body: Scrollbar(
+                interactive: true,
+                thumbVisibility: true,
+                thickness: 7,
+                radius: const Radius.circular(5),
+                child: ListView.builder(
+                  //this padding is a stupid agdgsdfjlshkf solution
+                  // but i am bad at ui so itttl do
+                  padding: const EdgeInsets.fromLTRB(
+                      listPadding, listPadding, listPadding, 150),
+                  itemCount: listLength,
+                  itemBuilder: (BuildContext context, int index) {
+                    //print(snapshot.data?[index]["name"]);
 
-                  return Container(
-                    decoration: const BoxDecoration(
-                        border: Border(
-                            bottom: BorderSide(
-                                color: Color.fromARGB(20, 0, 0, 0)))),
-                    child: ListTile(
-                      onTap: () {},
-                      title: Text("${snapshot.data?[index]["name"]}"),
-                      trailing: IconButton(
-                        icon: const Icon(Icons.delete),
-                        onPressed: () {
-                          // var itemToDelete = snapshot.data?[index];
-                          if (snapshot.data?.isNotEmpty == true) {
-                            var deleteBodyObj = {
-                              "action": "delete",
-                              "names": [index + 1],
-                            };
-                            // removeNames(deleteBodyObj);
-                            setState(() {
-                              removeNames(deleteBodyObj);
-                            });
-                            // send to server, then recieve the new list & display it
-                          }
-                        },
+                    return Container(
+                      decoration: const BoxDecoration(
+                          border: Border(
+                              bottom: BorderSide(
+                                  color: Color.fromARGB(20, 0, 0, 0)))),
+                      child: ListTile(
+                        onTap: () {},
+                        title: Text("${snapshot.data?[index]["name"]}"),
+                        trailing: IconButton(
+                          // padding: EdgeInsets.only(right: 50),
+                          icon: const Icon(Icons.delete),
+                          onPressed: () {
+                            // var itemToDelete = snapshot.data?[index];
+                            if (snapshot.data?.isNotEmpty == true) {
+                              var deleteBodyObj = {
+                                "action": "delete",
+                                "names": [index + 1],
+                              };
+                              // removeNames(deleteBodyObj);
+                              setState(() {
+                                removeNames(deleteBodyObj);
+                              });
+                              // send to server, then recieve the new list & display it
+                            }
+                          },
+                        ),
                       ),
-                    ),
-                  );
-                },
+                    );
+                  },
+                ),
               ),
             );
           }
@@ -420,6 +581,7 @@ class _ListToDisplayState extends State<ListToDisplay> {
   }
 }
 
+//testing
 class EditableList extends StatelessWidget {
   const EditableList({super.key});
 
