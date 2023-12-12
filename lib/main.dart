@@ -59,8 +59,11 @@ class _MyAppState extends State<MyApp> {
               title: const Text("Edit Namelist!"),
               foregroundColor: Colors.black,
               actions: [
-                SettingsWidget(
-                  callbackSetState: callbackSetState,
+                Padding(
+                  padding: const EdgeInsets.only(right: 5),
+                  child: SettingsWidget(
+                    callbackSetState: callbackSetState,
+                  ),
                 )
               ],
             ),
