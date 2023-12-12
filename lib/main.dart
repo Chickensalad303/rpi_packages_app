@@ -189,6 +189,7 @@ class _FirstTimeSettingsState extends State<FirstTimeSettings> {
                   child: Form(
                     canPop: true,
                     child: TextFormField(
+                      enableSuggestions: false,
                       autocorrect: false,
                       controller: textController,
                       decoration: InputDecoration(
