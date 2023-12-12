@@ -1,4 +1,4 @@
-import 'dart:ui';
+// import 'dart:ui';
 
 import 'package:flutter/material.dart';
 
@@ -119,7 +119,7 @@ class _SettingsWidgetState extends State<SettingsWidget> {
                           onPressed: () {
                             //here just save input to ip & close settings
                             if (settingsController.text.isEmpty) {
-                              print("ip input can't be empty");
+                              // print("ip input can't be empty");
                               _errorText = "Can't be empty";
                               stfState(() {});
                               return;
@@ -135,9 +135,9 @@ class _SettingsWidgetState extends State<SettingsWidget> {
                             var newIP = settingsController.text.trim();
                             onlineCheckIp = "http://$newIP";
                             ip = "$onlineCheckIp/api";
-                            print(ip);
 
-                            print(onlineCheckIp);
+                            // print(ip);
+                            // print(onlineCheckIp);
                             widget.callbackSetState();
                             Navigator.pop(context);
                           },
@@ -176,6 +176,7 @@ class _FirstTimeSettingsState extends State<FirstTimeSettings> {
                 padding: EdgeInsets.only(bottom: 50),
                 child: Text(
                   "Insert IP adress of the server",
+                  textAlign: TextAlign.center,
                   style: TextStyle(fontSize: 22),
                 ),
               ),
@@ -233,7 +234,7 @@ Future<List> getData() async {
   var res = await http.get(Uri.parse(ip));
   if (res.statusCode == 200) {
     var getData = jsonDecode(res.body);
-    print(getData);
+    //print(getData);
 
     return Future.value(getData);
   } else {
@@ -349,7 +350,7 @@ class _ListToDisplayState extends State<ListToDisplay> {
     return FutureBuilder(
       future: getData(),
       builder: (context, snapshot) {
-        print(onlineCheckIp);
+        //print(onlineCheckIp);
         if (snapshot.connectionState == ConnectionState.waiting) {
           // this automatically reconnects when when server is turned back on
           // & also happens when waiting for a response. 2 for 1
@@ -365,7 +366,10 @@ class _ListToDisplayState extends State<ListToDisplay> {
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
                       CircularProgressIndicator.adaptive(),
-                      Text("Server is online - Loading...")
+                      Text(
+                        "Server is online - Loading...",
+                        textAlign: TextAlign.center,
+                      )
                     ],
                   ),
                 );
@@ -387,7 +391,18 @@ class _ListToDisplayState extends State<ListToDisplay> {
                             children: [
                               Text("Loading..."),
                               Text(
-                                  "If stuck here, check if the server is offline & turn it on")
+                                "If stuck here, check if the server is offline & turn it on",
+                                textAlign: TextAlign.center,
+                              ),
+                              Padding(
+                                padding: EdgeInsets.only(top: 20),
+                                child: Text(
+                                  "Alternatively, make sure IP of the server is correct",
+                                  textAlign: TextAlign.center,
+                                  style: TextStyle(
+                                      color: Color.fromARGB(150, 0, 0, 0)),
+                                ),
+                              )
                             ],
                           ))
                     ],
@@ -398,7 +413,7 @@ class _ListToDisplayState extends State<ListToDisplay> {
           );
         } else {
           if (snapshot.hasError) {
-            print(snapshot.error);
+            //print(snapshot.error);
             return Center(
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
@@ -486,7 +501,7 @@ class _ListToDisplayState extends State<ListToDisplay> {
                                             onPressed: () {
                                               //print(textController.text);
                                               if (textController.text.isEmpty) {
-                                                print("Can't be empty");
+                                                //print("Can't be empty");
                                                 stfState(() {
                                                   _errorText = "Can't be empty";
                                                 });
