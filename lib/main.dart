@@ -1,5 +1,5 @@
 // import 'dart:ui';
-
+import "package:shared_preferences/shared_preferences.dart";
 import 'package:flutter/material.dart';
 
 import "package:http/http.dart" as http;
@@ -36,6 +36,38 @@ class _MyAppState extends State<MyApp> {
     setState(() {});
   }
 
+  //create function that can be called by other widgets to the vars IP & onlineCheckIP to localstorage
+  String? _onlineCheckIpStorage;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadLocalStorage();
+  }
+
+  void _loadLocalStorage() async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    setState(() {
+      var savedIP = prefs.getString("savedIP");
+      if (savedIP != null || savedIP != "") {
+        _onlineCheckIpStorage = savedIP;
+        print(
+            "LocalStorage has loaded. The current value of _onlineCheckIpStorage is: $_onlineCheckIpStorage");
+      }
+    });
+  }
+
+  void updateLocalStorage(newIP) async {
+    // print("here $newIP");
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    setState(() {
+      prefs.setString("savedIP", newIP);
+      var savedIP = prefs.getString("savedIP");
+      _onlineCheckIpStorage = savedIP;
+      print("local Storage: $_onlineCheckIpStorage");
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
@@ -63,6 +95,8 @@ class _MyAppState extends State<MyApp> {
                   padding: const EdgeInsets.only(right: 5),
                   child: SettingsWidget(
                     callbackSetState: callbackSetState,
+                    updateLocalStorage: updateLocalStorage,
+                    onlineCheckIpStorage: _onlineCheckIpStorage,
                   ),
                 )
               ],
@@ -72,14 +106,23 @@ class _MyAppState extends State<MyApp> {
             body: Container(
               //dont do const because then settingswidget callbackSetState() wont affect this
               // ignore: prefer_const_constructors
-              child: ListToDisplay(),
+              child: ListToDisplay(
+                updateLocalStorage: updateLocalStorage,
+                onlineCheckIpStorage: _onlineCheckIpStorage,
+              ),
             )));
   }
 }
 
 class SettingsWidget extends StatefulWidget {
   Function callbackSetState;
-  SettingsWidget({super.key, required this.callbackSetState});
+  Function updateLocalStorage;
+  String? onlineCheckIpStorage;
+  SettingsWidget(
+      {super.key,
+      required this.callbackSetState,
+      required this.updateLocalStorage,
+      required this.onlineCheckIpStorage});
 
   @override
   State<SettingsWidget> createState() => _SettingsWidgetState();
@@ -96,7 +139,11 @@ class _SettingsWidgetState extends State<SettingsWidget> {
       icon: const Icon(Icons.settings),
       onPressed: () {
         _errorText = null;
-        settingsController.text = onlineCheckIp.replaceAll("http://", "");
+        if (widget.onlineCheckIpStorage != null) {
+          settingsController.text =
+              widget.onlineCheckIpStorage!.replaceAll("http://", "");
+        }
+
         showAdaptiveDialog(
             context: context,
             builder: (context) {
@@ -121,13 +168,15 @@ class _SettingsWidgetState extends State<SettingsWidget> {
                       FloatingActionButton(
                           onPressed: () {
                             //here just save input to ip & close settings
-                            if (settingsController.text.isEmpty) {
+                            if (settingsController.text.trim().isEmpty) {
                               // print("ip input can't be empty");
                               _errorText = "Can't be empty";
                               stfState(() {});
                               return;
                             } else {
                               _errorText = null;
+                              settingsController.text = settingsController.text
+                                  .replaceAll("http://", "");
                             }
 
                             // need to impliment this to reconnect with new ip
@@ -141,6 +190,7 @@ class _SettingsWidgetState extends State<SettingsWidget> {
 
                             // print(ip);
                             // print(onlineCheckIp);
+                            widget.updateLocalStorage(onlineCheckIp);
                             widget.callbackSetState();
                             Navigator.pop(context);
                           },
@@ -156,8 +206,14 @@ class _SettingsWidgetState extends State<SettingsWidget> {
 }
 
 class FirstTimeSettings extends StatefulWidget {
+  String? onlineCheckIpStorage;
   Function firstTimeSetState;
-  FirstTimeSettings({super.key, required this.firstTimeSetState});
+  Function updateLocalStorage;
+  FirstTimeSettings(
+      {super.key,
+      required this.firstTimeSetState,
+      required this.updateLocalStorage,
+      required this.onlineCheckIpStorage});
 
   @override
   State<FirstTimeSettings> createState() => _FirstTimeSettingsState();
@@ -166,6 +222,7 @@ class FirstTimeSettings extends StatefulWidget {
 class _FirstTimeSettingsState extends State<FirstTimeSettings> {
   var textController = TextEditingController();
   String? _errorText;
+
   @override
   Widget build(BuildContext context) {
     return StatefulBuilder(
@@ -207,17 +264,20 @@ class _FirstTimeSettingsState extends State<FirstTimeSettings> {
                     icon: const Icon(Icons.save),
                     label: const Text("Save"),
                     onPressed: () {
-                      if (textController.text.isEmpty) {
+                      if (textController.text.trim().isEmpty) {
                         _errorText = "Can't be empty";
                         stfState((() {}));
                         return;
                       } else {
                         _errorText = null;
+                        textController.text =
+                            textController.text.replaceAll("http://", "");
                       }
                       var newIP = textController.text.trim();
                       onlineCheckIp = "http://$newIP";
                       ip = "$onlineCheckIp/api";
 
+                      widget.updateLocalStorage(onlineCheckIp);
                       widget.firstTimeSetState();
                     }),
               )
@@ -229,16 +289,18 @@ class _FirstTimeSettingsState extends State<FirstTimeSettings> {
   }
 }
 
-Future<List> getData() async {
-  if (ip == "") {
+Future<List> getData(inputIP) async {
+  if (inputIP == "" || inputIP == null) {
     return [
       {"error": "Invalid argument(s): No host specified in URI", "code": 1}
     ];
   }
-  var res = await http.get(Uri.parse(ip));
+  var api = "$inputIP/api";
+  print("getData: $api");
+  var res = await http.get(Uri.parse(api));
   if (res.statusCode == 200) {
     var getData = jsonDecode(res.body);
-    print(getData);
+    //print(getData);
 
     return Future.value(getData);
   } else {
@@ -246,8 +308,11 @@ Future<List> getData() async {
   }
 }
 
-Future removeNames(bodyObject) async {
-  var res = await http.post(Uri.parse(ip),
+Future removeNames(bodyObject, inputIP) async {
+  var api = "$inputIP/api";
+  print("getData: $api");
+
+  var res = await http.post(Uri.parse(api),
       headers: {"Content-Type": "application/json"},
       body: jsonEncode(bodyObject));
 
@@ -259,9 +324,12 @@ Future removeNames(bodyObject) async {
   }
 }
 
-Future addNames(bodyObject) async {
+Future addNames(bodyObject, inputIP) async {
+  var api = "$inputIP/api";
+  print("getData: $api");
+
   var res = await http.post(
-    Uri.parse(ip),
+    Uri.parse(api),
     headers: {"Content-Type": "application/json"},
     body: jsonEncode(bodyObject),
   );
@@ -313,7 +381,12 @@ Future addNames(bodyObject) async {
 // }
 
 class ListToDisplay extends StatefulWidget {
-  const ListToDisplay({super.key});
+  String? onlineCheckIpStorage;
+  Function updateLocalStorage;
+  ListToDisplay(
+      {super.key,
+      required this.updateLocalStorage,
+      required this.onlineCheckIpStorage});
 
   @override
   State<ListToDisplay> createState() => _ListToDisplayState();
@@ -325,11 +398,12 @@ class _ListToDisplayState extends State<ListToDisplay> {
   }
 
   //got it from https://stackoverflow.com/a/70951162
-  Stream<http.Response> isOnlineStream() async* {
+  Stream<http.Response> isOnlineStream(inputIP) async* {
+    print("is Online Stream: $inputIP");
     yield* Stream.periodic(const Duration(seconds: 5), (_) {
       var i;
       setState(() {
-        i = http.get(Uri.parse(onlineCheckIp));
+        i = http.get(Uri.parse(inputIP));
       }); // added this ... idk why this works Flutter is stoopid
 
       return i;
@@ -350,16 +424,19 @@ class _ListToDisplayState extends State<ListToDisplay> {
 
   @override
   Widget build(BuildContext context) {
+    setState(() {});
+    //set this to an empty string to launch first time setup screen
+
     //no to make this a streamBuilder. Just add a refresh overlay button along with the add name button
     return FutureBuilder(
-      future: getData(),
+      future: getData(widget.onlineCheckIpStorage),
       builder: (context, snapshot) {
         //print(onlineCheckIp);
         if (snapshot.connectionState == ConnectionState.waiting) {
           // this automatically reconnects when when server is turned back on
           // & also happens when waiting for a response. 2 for 1
           return StreamBuilder(
-            stream: isOnlineStream(),
+            stream: isOnlineStream(widget.onlineCheckIpStorage),
             builder: (BuildContext context, AsyncSnapshot snapshot) {
               if (snapshot.hasData) {
                 //this only gets called when we are waiting for response from server, eventhough they are connected
@@ -446,10 +523,14 @@ class _ListToDisplayState extends State<ListToDisplay> {
             //handle if function returns custom error
             //print(snapshot.data?[0]["code"]);
             if (snapshot.data?[0]["code"] == 1) {
-              return FirstTimeSettings(firstTimeSetState: firstTimeSetState);
+              return FirstTimeSettings(
+                firstTimeSetState: firstTimeSetState,
+                updateLocalStorage: widget.updateLocalStorage,
+                onlineCheckIpStorage: widget.onlineCheckIpStorage,
+              );
             }
             if (snapshot.data == null || snapshot.data?.isEmpty == true) {
-              return const Text("Data recieved is empty");
+              return const Text("Namelist is empty");
             }
             listLength = snapshot.data?.length;
 
@@ -524,8 +605,13 @@ class _ListToDisplayState extends State<ListToDisplay> {
                                                 "action": "add",
                                                 "names": [nameToAdd]
                                               };
-                                              addNames(addNamesObj);
-                                              setState(() {});
+                                              addNames(
+                                                      addNamesObj,
+                                                      widget
+                                                          .onlineCheckIpStorage)
+                                                  .then((value) =>
+                                                      {setState(() {})});
+                                              // setState(() {});
                                               Navigator.pop(context);
                                               textController.clear();
                                             },
@@ -579,9 +665,10 @@ class _ListToDisplayState extends State<ListToDisplay> {
                                 "names": [index + 1],
                               };
                               // removeNames(deleteBodyObj);
-                              setState(() {
-                                removeNames(deleteBodyObj);
-                              });
+
+                              removeNames(deleteBodyObj,
+                                      widget.onlineCheckIpStorage)
+                                  .then((value) => {setState(() {})});
                               // send to server, then recieve the new list & display it
                             }
                           },
