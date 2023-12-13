@@ -238,7 +238,7 @@ Future<List> getData() async {
   var res = await http.get(Uri.parse(ip));
   if (res.statusCode == 200) {
     var getData = jsonDecode(res.body);
-    //print(getData);
+    print(getData);
 
     return Future.value(getData);
   } else {
@@ -503,6 +503,7 @@ class _ListToDisplayState extends State<ListToDisplay> {
                                         child: FloatingActionButton(
                                             //here send names to add to the server
                                             onPressed: () {
+                                              String nameToAdd;
                                               //print(textController.text);
                                               if (textController.text.isEmpty) {
                                                 //print("Can't be empty");
@@ -513,20 +514,18 @@ class _ListToDisplayState extends State<ListToDisplay> {
                                                 return;
                                               } else {
                                                 _errorText = null;
+                                                nameToAdd = textController.text;
                                               }
 
                                               //sftState sets the state for StatefulBuilder
                                               //whilst setState sets state for entire widget
                                               //(aka. the FutureBuilder)
-                                              var nameToAdd =
-                                                  textController.text;
                                               var addNamesObj = {
                                                 "action": "add",
                                                 "names": [nameToAdd]
                                               };
-                                              setState(() {
-                                                addNames(addNamesObj);
-                                              });
+                                              addNames(addNamesObj);
+                                              setState(() {});
                                               Navigator.pop(context);
                                               textController.clear();
                                             },
