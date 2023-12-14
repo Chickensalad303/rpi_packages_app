@@ -424,7 +424,7 @@ class _ListToDisplayState extends State<ListToDisplay> {
 
   @override
   Widget build(BuildContext context) {
-    setState(() {});
+    // setState(() {});
     //set this to an empty string to launch first time setup screen
 
     //no to make this a streamBuilder. Just add a refresh overlay button along with the add name button
@@ -520,20 +520,126 @@ class _ListToDisplayState extends State<ListToDisplay> {
               ),
             );
           } else {
-            //handle if function returns custom error
-            //print(snapshot.data?[0]["code"]);
-            if (snapshot.data?[0]["code"] == 1) {
-              return FirstTimeSettings(
-                firstTimeSetState: firstTimeSetState,
-                updateLocalStorage: widget.updateLocalStorage,
-                onlineCheckIpStorage: widget.onlineCheckIpStorage,
+            //print(snapshot.data?.length);
+            listLength = snapshot.data?.length;
+            if (snapshot.data == null || snapshot.data?.isEmpty == true) {
+              //the definition of inneficient
+              // this is terrible
+              return Scaffold(
+                body: const Center(
+                    child: Text("The list is empty, try adding something")),
+                floatingActionButton: Padding(
+                  padding: const EdgeInsets.only(right: listPadding),
+                  child: Column(
+                      mainAxisAlignment: MainAxisAlignment.end,
+                      children: [
+                        FloatingActionButton(
+                            // refresh list
+                            child: const Icon(Icons.refresh_rounded),
+                            onPressed: () {
+                              setState(() {});
+                            }),
+                        Padding(
+                          padding: const EdgeInsets.only(top: 10),
+                          child: FloatingActionButton(
+                              //add to list
+                              onPressed: () {
+                                //removes error text for next time dialog is opened
+                                _errorText = null;
+
+                                showAdaptiveDialog(
+                                  context: context,
+                                  builder: (context) {
+                                    return StatefulBuilder(
+                                      builder: (stfcontext, stfState) {
+                                        return AlertDialog(
+                                          scrollable: true,
+                                          title: const Center(
+                                              child: Text("Add name")),
+                                          //form inside the alert dialog
+                                          content: Form(
+                                              child: TextFormField(
+                                            enableInteractiveSelection: true,
+                                            enableSuggestions: true,
+                                            autofocus: true,
+                                            controller: textController,
+                                            decoration: InputDecoration(
+                                                errorText: _errorText,
+                                                labelText: "Name",
+                                                // errorText: "Can't be empty",
+                                                icon: const Icon(
+                                                    Icons.account_circle)),
+                                          )),
+                                          // buttons inside the alertdialog
+                                          actions: [
+                                            SizedBox(
+                                              width: 80,
+                                              child: FloatingActionButton(
+                                                  //here send names to add to the server
+                                                  onPressed: () {
+                                                    String nameToAdd;
+                                                    //print(textController.text);
+                                                    if (textController
+                                                        .text.isEmpty) {
+                                                      //print("Can't be empty");
+                                                      stfState(() {
+                                                        _errorText =
+                                                            "Can't be empty";
+                                                      });
+
+                                                      return;
+                                                    } else {
+                                                      _errorText = null;
+                                                      nameToAdd =
+                                                          textController.text;
+                                                    }
+
+                                                    //sftState sets the state for StatefulBuilder
+                                                    //whilst setState sets state for entire widget
+                                                    //(aka. the FutureBuilder)
+                                                    var addNamesObj = {
+                                                      "action": "add",
+                                                      "names": [nameToAdd]
+                                                    };
+                                                    addNames(
+                                                            addNamesObj,
+                                                            widget
+                                                                .onlineCheckIpStorage)
+                                                        .then((value) =>
+                                                            {setState(() {})});
+                                                    // setState(() {});
+                                                    Navigator.pop(context);
+                                                    textController.clear();
+                                                  },
+                                                  child: const Text("Submit")),
+                                            )
+                                          ],
+                                        );
+                                      },
+                                    );
+                                  },
+                                );
+                              },
+                              child: const Icon(Icons.add)),
+                        ),
+                      ]),
+                ),
+                floatingActionButtonLocation:
+                    FloatingActionButtonLocation.endFloat,
               );
             }
-            if (snapshot.data == null || snapshot.data?.isEmpty == true) {
-              return const Text("Namelist is empty");
-            }
-            listLength = snapshot.data?.length;
 
+            //handle if function returns custom error
+            //print(snapshot.data?[0]["code"]);
+            if (snapshot.data != null || snapshot.data?.isEmpty == false) {
+              if (snapshot.data?[0]["code"] == 1) {
+                return FirstTimeSettings(
+                  firstTimeSetState: firstTimeSetState,
+                  updateLocalStorage: widget.updateLocalStorage,
+                  onlineCheckIpStorage: widget.onlineCheckIpStorage,
+                );
+              }
+            }
             return Scaffold(
               //this shit stupid af i cant put this inside a seperate widget for some reason
               floatingActionButton: Padding(
