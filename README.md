@@ -1,7 +1,7 @@
 # rpi_packages_app
 Simply download apk file on android phone & install it
 
-\n\n\n\n
+\\\
 
 A new Flutter project.
 
